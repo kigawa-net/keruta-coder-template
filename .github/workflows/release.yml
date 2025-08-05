@@ -1,0 +1,58 @@
+name: Create Release with Coder Workspace Template
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d-%H%M%S')" >> $GITHUB_OUTPUT
+        
+      - name: Create coder-workspace zip
+        run: |
+          cd coder-workspace
+          zip -r ../coder-workspace.zip .
+          
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-${{ github.run_number }}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Coder Workspace Template ${{ steps.tag.outputs.tag }}"
+          body: |
+            ## Coder Workspace Template Release
+            
+            このリリースには、Coderワークスペース用のTerraformテンプレートが含まれています。
+            
+            ### 含まれるファイル
+            - `coder-workspace.zip`: Coderワークスペーステンプレート一式
+            
+            ### 使用方法
+            1. `coder-workspace.zip`をダウンロード
+            2. Coderサーバーにテンプレートとしてアップロード
+            3. ワークスペース作成時にこのテンプレートを選択
+            
+            ### 変更内容
+            - コミット: ${{ github.sha }}
+            - 日時: ${{ steps.date.outputs.date }}
+          files: |
+            coder-workspace.zip
+          draft: false
+          prerelease: false
