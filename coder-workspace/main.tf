@@ -110,7 +110,7 @@ resource "coder_agent" "main" {
     set -e
 
     ####################################################################################################
-    echo ' 
+    echo '
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
     echo "Node version: $(node -v)"
@@ -409,7 +409,7 @@ module "claude-code" {
   source              = "registry.coder.com/coder/claude-code/coder"
   version             = "2.0.3"
   agent_id            = coder_agent.main.id
-  folder              = "/home/coder"
+  folder              = "/home/coder/keruta"
   install_claude_code = true
   claude_code_version = "latest"
 }
