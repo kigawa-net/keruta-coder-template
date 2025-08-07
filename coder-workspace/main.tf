@@ -413,3 +413,8 @@ module "claude-code" {
   install_claude_code = true
   claude_code_version = "latest"
 }
+module "tmux" {
+    source   = "registry.coder.com/anomaly/tmux/coder"
+    version  = "1.0.0"
+    agent_id = coder_agent.main.id
+}
