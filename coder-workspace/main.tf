@@ -106,6 +106,7 @@ data "coder_workspace_owner" "me" {}
 resource "coder_agent" "main" {
   os             = "linux"
   arch           = "amd64"
+
   startup_script = <<-EOT
     set -e
 
@@ -116,6 +117,19 @@ resource "coder_agent" "main" {
     echo "Node version: $(node -v)"
     ' > ~/.profile
     ####################################################################################################
+    for i in {1..30}; do
+      if [ -x "/home/coder/keruta/claude-code" ]; then
+        echo "✅ Claude Code がインストールされました"
+        break
+      fi
+      echo "⏳ Claude Code のインストール待ち中..."
+      sleep 2
+    done
+    ####################################################################################################
+
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    echo "Node version: $(node -v)"
 
     set -euo pipefail
 
@@ -412,9 +426,4 @@ module "claude-code" {
   folder              = "/home/coder/keruta"
   install_claude_code = true
   claude_code_version = "latest"
-}
-module "tmux" {
-    source   = "registry.coder.com/anomaly/tmux/coder"
-    version  = "1.0.0"
-    agent_id = coder_agent.main.id
 }
