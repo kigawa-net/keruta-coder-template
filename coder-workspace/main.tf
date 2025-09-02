@@ -81,8 +81,8 @@ data "coder_parameter" "memory" {
   }
 }
 
-data "coder_parameter" "home_disk_size" {
-  name         = "home_disk_size"
+data "coder_parameter" "keruta_disk_size" {
+  name         = "keruta_disk_size"
   display_name = "Home disk size"
   description  = "The size of the home disk in GB"
   default      = "10"
@@ -252,9 +252,9 @@ resource "coder_app" "code-server" {
   }
 }
 
-resource "kubernetes_persistent_volume_claim" "home" {
+resource "kubernetes_persistent_volume_claim" "keruta" {
   metadata {
-    name      = "coder-${data.coder_workspace.me.id}-home"
+    name      = "coder-${data.coder_workspace.me.id}-keruta"
     namespace = var.namespace
     labels = {
       "app.kubernetes.io/name"     = "coder-pvc"
@@ -276,16 +276,48 @@ resource "kubernetes_persistent_volume_claim" "home" {
     access_modes = ["ReadWriteOnce"]
     resources {
       requests = {
-        storage = "${data.coder_parameter.home_disk_size.value}Gi"
+        storage = "${data.coder_parameter.keruta_disk_size.value}Gi"
       }
     }
   }
 }
 
+data "kubernetes_persistent_volume_claim" "existing_home" {
+    metadata {
+        name      = "home-${data.coder_workspace_owner.me.name}"
+        namespace = var.namespace
+    }
+}
+resource "kubernetes_persistent_volume_claim" "new_home" {
+    metadata {
+        name      = "home-${data.coder_workspace_owner.me.name}"
+        namespace = var.namespace
+        labels = {
+            "com.coder.workspace.id"   = data.coder_workspace.me.id
+            "com.coder.workspace.name" = data.coder_workspace.me.name
+        }
+    }
+    wait_until_bound = false
+    spec {
+        access_modes = ["ReadWriteOnce"]
+        resources {
+            requests = {
+                storage = "32Gi"
+            }
+        }
+    }
+}
+locals {
+    pvc_name = try(
+        data.kubernetes_persistent_volume_claim.existing_home.metadata[0].name,
+        kubernetes_persistent_volume_claim.new_home.metadata[0].name,
+    )
+}
 resource "kubernetes_deployment" "main" {
   count = data.coder_workspace.me.start_count
   depends_on = [
-    kubernetes_persistent_volume_claim.home
+    local.pvc_name,
+    kubernetes_persistent_volume_claim.keruta
   ]
   wait_for_rollout = false
   metadata {
@@ -367,6 +399,11 @@ resource "kubernetes_deployment" "main" {
             }
           }
           volume_mount {
+            mount_path = "/home/coder/keruta"
+            name       = "keruta"
+            read_only  = false
+          }
+          volume_mount {
             mount_path = "/home/coder"
             name       = "home"
             read_only  = false
@@ -374,10 +411,16 @@ resource "kubernetes_deployment" "main" {
         }
 
         volume {
+          name = "keruta"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.keruta.metadata.0.name
+            read_only  = false
+          }
+        }
+        volume {
           name = "home"
           persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.home.metadata.0.name
-            read_only  = false
+            claim_name = local.pvc_name
           }
         }
 
@@ -404,7 +447,6 @@ resource "kubernetes_deployment" "main" {
     }
   }
 }
-
 data "coder_parameter" "ai_prompt" {
   type        = "string"
   name        = "AI Prompt"
