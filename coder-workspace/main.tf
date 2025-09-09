@@ -34,6 +34,10 @@ variable "keruta_url" {
     type = string
     description = "keruta url"
 }
+variable "home_storage_class" {
+  type = string
+  description = "home sc"
+}
 
 data "coder_parameter" "cpu" {
   name         = "cpu"
@@ -309,6 +313,7 @@ resource "kubernetes_persistent_volume_claim" "new_home" {
                 storage = "32Gi"
             }
         }
+        storage_class_name = var.home_storage_class
     }
 }
 locals {
