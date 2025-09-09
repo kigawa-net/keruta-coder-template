@@ -122,7 +122,6 @@ resource "coder_agent" "main" {
     echo '
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-    echo "Node version: $(node -v)"
     ' > ~/.profile
     ####################################################################################################
     for i in {1..30}; do
